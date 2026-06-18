@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Video Library</string>
+    <string name="title_activity_main">Video Library</string>
+    <string name="package_name">com.openlib.videolibrary</string>
+    <string name="custom_url_scheme">com.openlib.videolibrary</string>
+</resources>

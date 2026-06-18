@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Video Library</title>
+<style>
+  :root{
+    --bg:#000000;
+    --surface:#1c1c1e;
+    --surface2:#2c2c2e;
+    --accent:#0381fe;
+    --accent-dim:rgba(3,129,254,0.16);
+    --text:#f2f2f2;
+    --text-dim:#9a9a9d;
+    --divider:#2c2c2e;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --danger:#ff5b5b;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;height:100%;}
+  #app{display:flex;flex-direction:column;height:100vh;color:var(--text);}
+
+  .appbar{flex:0 0 auto;background:var(--bg);padding:env(safe-area-inset-top) 16px 0 16px;position:relative;z-index:5;}
+  .row-top{display:flex;align-items:center;justify-content:space-between;height:46px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:transparent;border:none;color:var(--text);cursor:pointer;flex:0 0 auto;
+  }
+  .icon-btn:active{background:rgba(255,255,255,0.08);}
+  .icon-btn svg{width:21px;height:21px;}
+  .big-title{font-size:30px;font-weight:800;letter-spacing:-0.5px;padding:8px 4px 10px 4px;}
+  .selected-bar-title{font-size:19px;font-weight:700;padding:6px 4px;}
+
+  .tabs{display:flex;gap:8px;padding:2px 4px 12px 4px;}
+  .tab{padding:7px 16px;border-radius:999px;font-size:13.5px;font-weight:600;background:transparent;color:var(--text-dim);border:none;cursor:pointer;}
+  .tab.active{background:var(--accent-dim);color:var(--accent);}
+
+  .search-input-wrap{flex:1;display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:999px;padding:8px 14px;}
+  .search-input-wrap svg{width:17px;height:17px;color:var(--text-dim);flex:0 0 auto;}
+  .search-input-wrap input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:14.5px;}
+  .search-input-wrap input::placeholder{color:var(--text-dim);}
+
+  .content{flex:1 1 auto;overflow-y:auto;padding:0 16px 100px 16px;-webkit-overflow-scrolling:touch;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px 12px;}
+  .card{cursor:pointer;user-select:none;-webkit-user-select:none;}
+  .thumb{position:relative;width:100%;aspect-ratio:16/10;border-radius:var(--radius-md);overflow:hidden;background:#333;background-size:cover;background-position:center;}
+  .thumb .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.38);display:flex;align-items:center;justify-content:center;}
+  .thumb .play svg{width:15px;height:15px;}
+  .duration{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.62);color:#fff;font-size:11px;font-weight:600;padding:2px 6px;border-radius:5px;letter-spacing:0.2px;}
+  .check{position:absolute;top:7px;left:7px;width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,0.85);background:rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;}
+  .check svg{width:13px;height:13px;opacity:0;}
+  .card.selected .thumb{outline:3px solid var(--accent);outline-offset:0;}
+  .card.selected .thumb::after{content:"";position:absolute;inset:0;background:rgba(3,129,254,0.18);}
+  .card.selected .check{background:var(--accent);border-color:var(--accent);}
+  .card.selected .check svg{opacity:1;color:#fff;}
+
+  .meta{padding-top:7px;}
+  .meta .title{font-size:13.5px;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .meta .sub{font-size:11.5px;color:var(--text-dim);margin-top:2px;}
+
+  .folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px 12px;}
+  .folder-card{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:var(--radius-md);padding:12px;cursor:pointer;}
+  .folder-icon{width:38px;height:38px;border-radius:10px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .folder-icon svg{width:19px;height:19px;color:var(--accent);}
+  .folder-info .title{font-size:13px;font-weight:600;}
+  .folder-info .sub{font-size:11px;color:var(--text-dim);margin-top:1px;}
+
+  .empty,.permission-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-top:90px;color:var(--text-dim);gap:12px;}
+  .empty svg,.permission-screen svg{width:46px;height:46px;opacity:0.5;}
+  .empty .t1,.permission-screen .t1{font-size:16px;font-weight:700;color:var(--text);}
+  .empty .t2,.permission-screen .t2{font-size:13.5px;max-width:280px;line-height:1.4;}
+  .primary-btn{margin-top:6px;background:var(--accent);color:#000;border:none;border-radius:999px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;}
+
+  .selection-bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--divider);display:flex;justify-content:space-around;padding:10px 4px calc(18px + env(safe-area-inset-bottom)) 4px;transform:translateY(110%);transition:transform .22s ease;z-index:10;}
+  .selection-bar.show{transform:translateY(0);}
+  .sel-action{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text);background:none;border:none;font-size:10.5px;font-weight:500;cursor:pointer;flex:1;}
+  .sel-action svg{width:21px;height:21px;}
+  .sel-action.danger{color:var(--danger);}
+
+  .popover{position:absolute;top:48px;right:14px;background:var(--surface2);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.5);min-width:200px;padding:6px;z-index:30;display:none;max-height:60vh;overflow-y:auto;}
+  .popover.show{display:block;}
+  .pop-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:8px;font-size:13.5px;cursor:pointer;color:var(--text);}
+  .pop-item:active{background:rgba(255,255,255,0.06);}
+  .pop-item svg{width:15px;height:15px;color:var(--accent);opacity:0;}
+  .pop-item.checked svg{opacity:1;}
+  .pop-sep{height:1px;background:var(--divider);margin:4px 2px;}
+
+  .overlay-scrim{position:fixed;inset:0;background:rgba(0,0,0,0.001);z-index:25;display:none;}
+  .overlay-scrim.show{display:block;}
+
+  .now-playing{position:fixed;inset:0;background:#000;z-index:40;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s ease;}
+  .now-playing.show{transform:translateY(0);}
+  .np-video{flex:0 0 auto;width:100%;aspect-ratio:16/9;position:relative;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;}
+  .np-video .play-big{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;}
+  .np-video .play-big svg{width:26px;height:26px;}
+  .np-close{position:absolute;top:14px;left:14px;z-index:2;}
+  .np-info{padding:18px 20px;}
+  .np-info .t{font-size:18px;font-weight:700;}
+  .np-info .s{font-size:12.5px;color:var(--text-dim);margin-top:5px;}
+
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#3a3a3c;color:#fff;font-size:13px;padding:10px 16px;border-radius:999px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;white-space:nowrap;}
+  .toast.show{opacity:1;bottom:90px;}
+
+  .fab{position:fixed;right:18px;bottom:calc(24px + env(safe-area-inset-bottom));width:54px;height:54px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(3,129,254,0.45);border:none;cursor:pointer;z-index:8;}
+  .fab svg{width:23px;height:23px;color:#000;}
+
+  .spinner{width:28px;height:28px;border:3px solid var(--surface2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="appbar" id="appbar">
+    <div class="row-top" id="rowTop"></div>
+    <div id="subRow"></div>
+  </div>
+  <div class="content" id="content"></div>
+  <button class="fab" id="fab" title="New folder" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <div class="selection-bar" id="selectionBar">
+    <button class="sel-action" data-action="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5l6.8-3.8M8.6 13.5l6.8 3.8"/></svg>Share</button>
+    <button class="sel-action" data-action="move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>Move</button>
+    <button class="sel-action danger" data-action="delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6h12z"/></svg>Delete</button>
+  </div>
+  <div class="overlay-scrim" id="scrim"></div>
+  <div class="popover" id="popover"></div>
+  <div class="now-playing" id="nowPlaying"></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const ICONS = {
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  more:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>',
+  play:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>',
+  folder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>',
+  film:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+};
+
+const GRADIENTS = [
+  'linear-gradient(135deg,#ff6b6b,#c44569)','linear-gradient(135deg,#4facfe,#00c2fe)',
+  'linear-gradient(135deg,#3ddc97,#1ca085)','linear-gradient(135deg,#fa709a,#fcb045)',
+  'linear-gradient(135deg,#667eea,#764ba2)','linear-gradient(135deg,#f7971e,#e8c200)',
+  'linear-gradient(135deg,#30cfd0,#3a4a9f)','linear-gradient(135deg,#b993f4,#8451d6)',
+];
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}return Math.abs(h);}
+function gradientFor(id){return GRADIENTS[hashStr(String(id)) % GRADIENTS.length];}
+
+// ---- Native bridge detection ----
+const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const Native = isNative && window.Capacitor.Plugins ? window.Capacitor.Plugins.VideoLibrary : null;
+
+function formatDuration(ms){
+  const total = Math.max(0, Math.round((ms||0)/1000));
+  const m = Math.floor(total/60), s = total%60;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+function formatSize(bytes){
+  bytes = bytes||0;
+  if(bytes > 1024*1024*1024) return (bytes/1024/1024/1024).toFixed(1)+' GB';
+  return Math.max(1, Math.round(bytes/1024/1024))+' MB';
+}
+function formatDate(ms){
+  if(!ms) return '';
+  return new Date(ms).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+
+// ---- Mock data used only for browser preview (no native bridge available) ----
+const MOCK_VIDEOS = [
+  {id:'1',title:'Family BBQ',durationMs:252000,sizeBytes:212*1024*1024,dateAdded:Date.now()-1*86400000,folderId:'camera',folderName:'Camera'},
+  {id:'2',title:'Sunset Drive Home',durationMs:63000,sizeBytes:58*1024*1024,dateAdded:Date.now()-2*86400000,folderId:'camera',folderName:'Camera'},
+  {id:'3',title:'Screen Recording 2026-06-12',durationMs:167000,sizeBytes:164*1024*1024,dateAdded:Date.now()-5*86400000,folderId:'screen',folderName:'Screen recordings'},
+  {id:'4',title:'Soccer Practice — Goals',durationMs:201000,sizeBytes:190*1024*1024,dateAdded:Date.now()-6*86400000,folderId:'camera',folderName:'Camera'},
+  {id:'5',title:'Beach Day Highlights',durationMs:308000,sizeBytes:305*1024*1024,dateAdded:Date.now()-8*86400000,folderId:'camera',folderName:'Camera'},
+  {id:'6',title:'Concert Front Row Clip',durationMs:42000,sizeBytes:41*1024*1024,dateAdded:Date.now()-9*86400000,folderId:'downloads',folderName:'Downloads'},
+];
+const MOCK_FOLDERS = [
+  {id:'camera',name:'Camera'},{id:'screen',name:'Screen recordings'},{id:'downloads',name:'Downloads'},
+];
+
+const state = {
+  loadState: isNative ? 'checking' : 'ready', // checking | needPermission | denied | ready
+  videos: isNative ? [] : MOCK_VIDEOS.slice(),
+  folders: isNative ? [] : MOCK_FOLDERS.slice(),
+  thumbCache: {},
+  tab:'videos', currentFolder:null, selectionMode:false, selected:new Set(),
+  searchOpen:false, query:'', sortBy:'date', popoverOpen:false,
+};
+
+const rowTop=document.getElementById('rowTop'), subRow=document.getElementById('subRow'),
+      content=document.getElementById('content'), selectionBar=document.getElementById('selectionBar'),
+      popover=document.getElementById('popover'), scrim=document.getElementById('scrim'),
+      fab=document.getElementById('fab'), toastEl=document.getElementById('toast'),
+      nowPlaying=document.getElementById('nowPlaying');
+
+function showToast(msg){
+  toastEl.textContent=msg; toastEl.classList.add('show');
+  clearTimeout(toastEl._t); toastEl._t=setTimeout(()=>toastEl.classList.remove('show'),1800);
+}
+function folderName(id){const f=state.folders.find(f=>f.id===id);return f?f.name:'';}
+
+async function loadFromNative(){
+  state.loadState='checking';
+  render();
+  try{
+    const perm = await Native.requestPermission();
+    if(!perm || !perm.granted){ state.loadState='needPermission'; render(); return; }
+    const [videosRes, foldersRes] = await Promise.all([Native.listVideos(), Native.listFolders()]);
+    state.videos = videosRes.videos || [];
+    state.folders = foldersRes.folders || [];
+    state.loadState='ready';
+  }catch(e){
+    state.loadState='needPermission';
+  }
+  render();
+}
+
+async function refreshFromNative(){
+  if(!isNative) return;
+  try{
+    const [videosRes, foldersRes] = await Promise.all([Native.listVideos(), Native.listFolders()]);
+    state.videos = videosRes.videos || [];
+    state.folders = foldersRes.folders || [];
+  }catch(e){}
+  render();
+}
+
+function getVisibleVideos(){
+  let list = state.videos;
+  if(state.currentFolder) list = list.filter(v=>v.folderId===state.currentFolder);
+  if(state.query.trim()) list = list.filter(v=>v.title.toLowerCase().includes(state.query.toLowerCase()));
+  const sorted=[...list];
+  if(state.sortBy==='name') sorted.sort((a,b)=>a.title.localeCompare(b.title));
+  else if(state.sortBy==='size') sorted.sort((a,b)=>(b.sizeBytes||0)-(a.sizeBytes||0));
+  else sorted.sort((a,b)=>(b.dateAdded||0)-(a.dateAdded||0));
+  return sorted;
+}
+
+function exitSelection(){state.selectionMode=false;state.selected.clear();render();}
+function toggleSelect(id){
+  if(state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
+  if(state.selected.size===0) state.selectionMode=false;
+  render();
+}
+
+function closePopover(){state.popoverOpen=false;popover.classList.remove('show');scrim.classList.remove('show');}
+function buildPopover(items){
+  popover.innerHTML='';
+  items.forEach(it=>{
+    if(it.sep){const d=document.createElement('div');d.className='pop-sep';popover.appendChild(d);return;}
+    const el=document.createElement('div');
+    el.className='pop-item'+(it.checked?' checked':'');
+    el.innerHTML=`<span>${it.label}</span>${ICONS.check}`;
+    el.addEventListener('click',()=>{closePopover();it.action();});
+    popover.appendChild(el);
+  });
+  popover.classList.add('show'); scrim.classList.add('show');
+}
+scrim.addEventListener('click',closePopover);
+
+function openPopoverMain(){
+  buildPopover([
+    {label:'Select items',action:()=>{state.selectionMode=true;render();}},
+    {label:'Sort: Date',action:()=>{state.sortBy='date';render();},checked:state.sortBy==='date'},
+    {label:'Sort: Name',action:()=>{state.sortBy='name';render();},checked:state.sortBy==='name'},
+    {label:'Sort: Size',action:()=>{state.sortBy='size';render();},checked:state.sortBy==='size'},
+  ]);
+}
+function openPopoverSelection(){
+  const all = getVisibleVideos();
+  const allSelected = all.length>0 && all.every(v=>state.selected.has(v.id));
+  buildPopover([{label:allSelected?'Deselect all':'Select all',action:()=>{
+    if(allSelected){state.selected.clear();state.selectionMode=false;} else all.forEach(v=>state.selected.add(v.id));
+    render();
+  }}]);
+}
+function openPopoverMoveTarget(){
+  const items = state.folders.map(f=>({label:f.name,action:()=>doMove(f.name)}));
+  items.push({sep:true});
+  items.push({label:'New folder…',action:()=>{
+    const name = window.prompt('New folder name');
+    if(name && name.trim()) doMove(name.trim());
+  }});
+  buildPopover(items);
+}
+
+async function doMove(targetFolderName){
+  const ids = [...state.selected];
+  if(!isNative){
+    showToast(`Move ${ids.length} item(s) to "${targetFolderName}" — preview only`);
+    exitSelection();
+    return;
+  }
+  showToast(`Moving to "${targetFolderName}"…`);
+  for(const id of ids){
+    try{ await Native.moveVideo({id, targetFolderName}); }catch(e){ /* user may cancel a given item's prompt */ }
+  }
+  exitSelection();
+  await refreshFromNative();
+  showToast('Done');
+}
+
+async function doDelete(){
+  const ids=[...state.selected];
+  if(!isNative){
+    state.videos = state.videos.filter(v=>!ids.includes(v.id));
+    showToast(`Deleted ${ids.length} item(s)`);
+    exitSelection();
+    return;
+  }
+  try{
+    const res = await Native.deleteVideos({ids});
+    if(res.confirmed===false){ showToast('Cancelled'); exitSelection(); return; }
+    showToast(`Deleted ${ids.length} item(s)`);
+  }catch(e){
+    showToast('Delete failed');
+  }
+  exitSelection();
+  await refreshFromNative();
+}
+
+function openNowPlaying(video){
+  if(isNative && Native){
+    Native.playVideo({uri:video.uri,title:video.title}).catch(()=>showToast('Could not open player'));
+    return;
+  }
+  // browser preview only
+  nowPlaying.innerHTML = `
+    <div class="np-video" style="background:${gradientFor(video.id)}">
+      <button class="icon-btn np-close" id="npClose" style="background:rgba(0,0,0,0.35)">${ICONS.close}</button>
+      <div class="play-big">${ICONS.play}</div>
+    </div>
+    <div class="np-info">
+      <div class="t">${video.title}</div>
+      <div class="s">${formatDate(video.dateAdded)} · ${formatSize(video.sizeBytes)} · ${formatDuration(video.durationMs)}</div>
+    </div>`;
+  nowPlaying.classList.add('show');
+  document.getElementById('npClose').addEventListener('click',()=>nowPlaying.classList.remove('show'));
+}
+
+function renderHeader(){
+  rowTop.innerHTML=''; subRow.innerHTML='';
+
+  if(state.loadState!=='ready'){
+    rowTop.style.display='flex';
+    const t=document.createElement('div'); t.className='big-title'; t.textContent='Video';
+    rowTop.append(t);
+    return;
+  }
+
+  if(state.selectionMode){
+    const cancelBtn=document.createElement('button'); cancelBtn.className='icon-btn'; cancelBtn.innerHTML=ICONS.close;
+    cancelBtn.addEventListener('click',exitSelection);
+    const title=document.createElement('div'); title.className='selected-bar-title'; title.style.flex='1';
+    title.textContent = state.selected.size>0 ? `${state.selected.size} selected` : 'Select items';
+    const moreBtn=document.createElement('button'); moreBtn.className='icon-btn'; moreBtn.innerHTML=ICONS.more;
+    moreBtn.addEventListener('click',e=>{e.stopPropagation();openPopoverSelection();});
+    rowTop.style.display='flex';
+    rowTop.append(cancelBtn,title,moreBtn);
+    return;
+  }
+
+  if(state.searchOpen){
+    const backBtn=document.createElement('button'); backBtn.className='icon-btn'; backBtn.innerHTML=ICONS.back;
+    backBtn.addEventListener('click',()=>{state.searchOpen=false;state.query='';render();});
+    const inputWrap=document.createElement('div'); inputWrap.className='search-input-wrap'; inputWrap.style.flex='1';
+    inputWrap.innerHTML = ICONS.search + '<input type="text" placeholder="Search videos" autocomplete="off">';
+    const input=inputWrap.querySelector('input'); input.value=state.query;
+    input.addEventListener('input',e=>{state.query=e.target.value;renderContent();});
+    rowTop.style.display='flex';
+    rowTop.append(backBtn,inputWrap);
+    setTimeout(()=>input.focus(),0);
+    return;
+  }
+
+  let titleText='Video';
+  if(state.tab==='videos' && state.currentFolder) titleText=folderName(state.currentFolder);
+
+  const titleEl=document.createElement('div'); titleEl.className='big-title'; titleEl.style.flex='1'; titleEl.textContent=titleText;
+  const searchBtn=document.createElement('button'); searchBtn.className='icon-btn'; searchBtn.innerHTML=ICONS.search;
+  searchBtn.addEventListener('click',()=>{state.searchOpen=true;render();});
+  const moreBtn=document.createElement('button'); moreBtn.className='icon-btn'; moreBtn.innerHTML=ICONS.more;
+  moreBtn.addEventListener('click',e=>{e.stopPropagation();openPopoverMain();});
+
+  rowTop.style.display='flex';
+  if(state.currentFolder){
+    const backBtn2=document.createElement('button'); backBtn2.className='icon-btn'; backBtn2.innerHTML=ICONS.back;
+    backBtn2.addEventListener('click',()=>{state.currentFolder=null;render();});
+    rowTop.append(backBtn2,titleEl,searchBtn,moreBtn);
+  } else {
+    rowTop.append(titleEl,searchBtn,moreBtn);
+  }
+
+  if(!state.currentFolder){
+    const tabsWrap=document.createElement('div'); tabsWrap.className='tabs';
+    [['videos','All videos'],['folders','Folders']].forEach(([key,label])=>{
+      const b=document.createElement('button'); b.className='tab'+(state.tab===key?' active':''); b.textContent=label;
+      b.addEventListener('click',()=>{state.tab=key;state.currentFolder=null;render();});
+      tabsWrap.appendChild(b);
+    });
+    subRow.appendChild(tabsWrap);
+  }
+}
+
+function renderContent(){
+  content.innerHTML='';
+
+  if(state.loadState==='checking'){
+    const wrap=document.createElement('div'); wrap.className='permission-screen';
+    wrap.innerHTML = `<div class="spinner"></div><div class="t1">Loading your videos…</div>`;
+    content.appendChild(wrap);
+    return;
+  }
+  if(state.loadState==='needPermission'){
+    const wrap=document.createElement('div'); wrap.className='permission-screen';
+    wrap.innerHTML = `${ICONS.lock}<div class="t1">Allow access to your videos</div>
+      <div class="t2">Video Library needs permission to see the videos stored on this device.</div>`;
+    const btn=document.createElement('button'); btn.className='primary-btn'; btn.textContent='Allow access';
+    btn.addEventListener('click',loadFromNative);
+    wrap.appendChild(btn);
+    content.appendChild(wrap);
+    return;
+  }
+
+  if(state.tab==='folders' && !state.currentFolder){
+    const grid=document.createElement('div'); grid.className='folder-grid';
+    if(state.folders.length===0){
+      const empty=document.createElement('div'); empty.className='empty';
+      empty.innerHTML = `${ICONS.folder}<div class="t1">No folders yet</div><div class="t2">Folders appear here based on where your videos are stored</div>`;
+      content.appendChild(empty);
+      return;
+    }
+    state.folders.forEach(f=>{
+      const count = state.videos.filter(v=>v.folderId===f.id).length;
+      const card=document.createElement('div'); card.className='folder-card';
+      card.innerHTML = `<div class="folder-icon">${ICONS.folder}</div>
+        <div class="folder-info"><div class="title">${f.name}</div><div class="sub">${count} items</div></div>`;
+      card.addEventListener('click',()=>{state.tab='videos';state.currentFolder=f.id;render();});
+      grid.appendChild(card);
+    });
+    content.appendChild(grid);
+    return;
+  }
+
+  const list = getVisibleVideos();
+  if(list.length===0){
+    const empty=document.createElement('div'); empty.className='empty';
+    empty.innerHTML = `${ICONS.film}<div class="t1">${state.query?'No results found':'No videos'}</div>
+      <div class="t2">${state.query?'Try a different search term':'Videos you save will appear here'}</div>`;
+    content.appendChild(empty);
+    return;
+  }
+
+  const grid=document.createElement('div'); grid.className='grid';
+  list.forEach(v=>{
+    const card=document.createElement('div'); card.className='card'+(state.selected.has(v.id)?' selected':'');
+    const bg = state.thumbCache[v.id] ? `background-image:url(${state.thumbCache[v.id]})` : `background:${gradientFor(v.id)}`;
+    card.innerHTML = `
+      <div class="thumb" style="${bg}">
+        <div class="play">${ICONS.play}</div>
+        <div class="duration">${formatDuration(v.durationMs)}</div>
+        ${state.selectionMode?`<div class="check">${ICONS.check}</div>`:''}
+      </div>
+      <div class="meta">
+        <div class="title">${v.title}</div>
+        <div class="sub">${formatDate(v.dateAdded)} · ${formatSize(v.sizeBytes)}</div>
+      </div>`;
+
+    let pressTimer=null;
+    card.addEventListener('pointerdown',()=>{
+      pressTimer=setTimeout(()=>{ if(!state.selectionMode){state.selectionMode=true;toggleSelect(v.id);} },450);
+    });
+    card.addEventListener('pointerup',()=>clearTimeout(pressTimer));
+    card.addEventListener('pointerleave',()=>clearTimeout(pressTimer));
+    card.addEventListener('click',()=>{
+      if(state.selectionMode) toggleSelect(v.id); else openNowPlaying(v);
+    });
+    grid.appendChild(card);
+
+    if(isNative && !state.thumbCache[v.id]){
+      Native.getThumbnail({id:v.id}).then(res=>{
+        state.thumbCache[v.id]=res.base64;
+        const thumbDiv=card.querySelector('.thumb');
+        if(thumbDiv){ thumbDiv.style.background=''; thumbDiv.style.backgroundSize='cover'; thumbDiv.style.backgroundPosition='center'; thumbDiv.style.backgroundImage=`url(${res.base64})`; }
+      }).catch(()=>{});
+    }
+  });
+  content.appendChild(grid);
+}
+
+function renderSelectionBar(){
+  if(state.selectionMode && state.selected.size>0) selectionBar.classList.add('show');
+  else selectionBar.classList.remove('show');
+}
+function renderFab(){
+  fab.style.display = (state.tab==='folders' && !state.selectionMode && state.loadState==='ready') ? 'flex' : 'none';
+}
+
+function render(){
+  closePopover();
+  renderHeader();
+  renderContent();
+  renderSelectionBar();
+  renderFab();
+}
+
+selectionBar.querySelectorAll('.sel-action').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const action=btn.dataset.action;
+    if(action==='delete') doDelete();
+    else if(action==='move') openPopoverMoveTarget();
+    else if(action==='share') showToast(`Share ${state.selected.size} item(s) — wire up an Intent.ACTION_SEND to make this real`);
+  });
+});
+
+fab.addEventListener('click',()=>{
+  showToast('Folders are created automatically the first time you move a video into a new folder name');
+});
+
+if(isNative){ loadFromNative(); } else { render(); }
+</script>
+</body>
+</html>
